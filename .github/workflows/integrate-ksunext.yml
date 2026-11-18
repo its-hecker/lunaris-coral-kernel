@@ -1,0 +1,38 @@
+name: Integrate KernelSU Next into Android 16 floral kernel
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/integrate-ksunext.yml
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Integrate pinned KernelSU Next legacy support
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KSU_SHA: e5f5ec998de88b9fc43c62cff8f7ae12d3f4800a
+        run: |
+          set -euo pipefail
+          git config --global user.name "Hecker"
+          git config --global user.email "hecker@users.noreply.github.com"
+          git clone --depth=1 --branch lunaris-16.2 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" source
+          cd source
+          if test -d KernelSU-Next; then
+            echo "KernelSU Next already added"
+            exit 0
+          fi
+          git submodule add -b legacy https://github.com/KernelSU-Next/KernelSU-Next.git KernelSU-Next
+          git -C KernelSU-Next show "${KSU_SHA}:kernel/setup.sh" > /tmp/ksunext-setup.sh
+          bash /tmp/ksunext-setup.sh "${KSU_SHA}"
+          test -L drivers/kernelsu
+          test -f arch/arm64/configs/floral_defconfig
+          ./scripts/config --file arch/arm64/configs/floral_defconfig \
+            --enable KPROBES --enable KPROBE_EVENTS \
+            --enable KSU_KPROBE_HOOKS --enable KSU
+          git add -A
+          git commit -m "Integrate pinned KernelSU Next legacy support for coral"
+          git push origin HEAD:refs/heads/lunaris-16.2
