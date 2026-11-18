@@ -31,4 +31,4 @@ jobs:
           git commit -m "Import LineageOS 23.2 floral 4.14 kernel for LunarisOS"
           git remote add target "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           
-          git push target HEAD:refs/heads/lunaris-16.2
+          git push --force-with-lease=refs/heads/lunaris-16.2:632524de20b00f95a1b4135e046e993b0cee2ef8 target HEAD:refs/heads/lunaris-16.2
