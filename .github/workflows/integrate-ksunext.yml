@@ -28,6 +28,7 @@ jobs:
           git submodule add -b legacy https://github.com/KernelSU-Next/KernelSU-Next.git KernelSU-Next
           git -C KernelSU-Next show "${KSU_SHA}:kernel/setup.sh" > /tmp/ksunext-setup.sh
           bash /tmp/ksunext-setup.sh "${KSU_SHA}"
+          test -f KernelSU-Next/kernel/Kconfig
           test -L drivers/kernelsu
           test -f arch/arm64/configs/floral_defconfig
           ./scripts/config --file arch/arm64/configs/floral_defconfig \
