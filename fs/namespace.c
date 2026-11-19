@@ -1739,6 +1739,46 @@ static inline bool may_mandlock(void)
 }
 #endif
 
+
+/*
+ * KernelSU Next needs path_umount() on pre-5.9 kernels. Backport the
+ * path-based interface into the source tree instead of modifying this file
+ * from a Makefile during parallel compilation (which can leave namespace.o
+ * stale and cause an undefined-symbol error at the final link).
+ */
+static int can_umount(const struct path *path, int flags)
+{
+	struct mount *mnt = real_mount(path->mnt);
+
+	if (!may_mount())
+		return -EPERM;
+	if (path->dentry != path->mnt->mnt_root)
+		return -EINVAL;
+	if (!check_mnt(mnt))
+		return -EINVAL;
+	if (mnt->mnt.mnt_flags & MNT_LOCKED)
+		return -EINVAL;
+	if (flags & MNT_FORCE && !capable(CAP_SYS_ADMIN))
+		return -EPERM;
+	return 0;
+}
+
+/* The caller supplies valid flags and transfers ownership of the path. */
+int path_umount(struct path *path, int flags)
+{
+	struct mount *mnt = real_mount(path->mnt);
+	int ret;
+
+	ret = can_umount(path, flags);
+	if (!ret)
+		ret = do_umount(mnt, flags);
+
+	/* path_put() would reset mnt_expiry_mark. */
+	dput(path->dentry);
+	mntput_no_expire(mnt);
+	return ret;
+}
+
 /*
  * Now umount can handle mount points as well as block devices.
  * This is important for filesystems which use unnamed block devices.
